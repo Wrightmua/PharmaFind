@@ -1,0 +1,656 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PharmaFind Prototype</title>
+<style>
+:root{
+  --primary:#0f766e; --primary-ink:#ffffff; --primary-soft:#e6f4f2;
+  --bg:#eef2f1; --surface:#ffffff; --surface-2:#f5f7f7;
+  --ink:#14211f; --ink-2:#5b6b68; --line:#dde4e2;
+  --good:#15803d; --good-soft:#e7f6ec;
+  --warn:#b45309; --warn-soft:#fdf3e2;
+  --bad:#b91c1c; --bad-soft:#fdeaea;
+  --radius:14px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Segoe UI",Roboto,system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--ink);min-height:100vh}
+button{font:inherit;cursor:pointer;border:none;background:none;color:inherit}
+input,textarea,select{font:inherit;color:inherit}
+
+/* ---------- shell ---------- */
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;padding:14px 24px;background:var(--surface);border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:18px}
+.logo{width:30px;height:30px;border-radius:9px;background:var(--primary);display:grid;place-items:center;color:#fff;font-weight:800;font-size:18px}
+.roles{display:flex;gap:4px;background:var(--surface-2);padding:4px;border-radius:999px;border:1px solid var(--line)}
+.roles button{padding:7px 16px;border-radius:999px;font-size:14px;color:var(--ink-2)}
+.roles button.on{background:var(--primary);color:#fff;font-weight:600}
+.stage{display:flex;justify-content:center;align-items:flex-start;gap:40px;padding:28px 16px 48px;flex-wrap:wrap}
+.note{max-width:300px;font-size:14px;color:var(--ink-2);line-height:1.55;padding-top:24px}
+.note h3{color:var(--ink);font-size:15px;margin-bottom:8px}
+.note li{margin:0 0 6px 18px}
+
+/* ---------- phone ---------- */
+.phone{width:380px;height:780px;background:var(--surface);border-radius:44px;border:10px solid #1d2725;box-shadow:0 30px 60px -20px rgba(0,0,0,.35);display:flex;flex-direction:column;overflow:hidden;position:relative}
+.status{display:flex;justify-content:space-between;padding:10px 24px 4px;font-size:12px;font-weight:600}
+.screen{flex:1;overflow-y:auto;padding:8px 20px 20px}
+.screen::-webkit-scrollbar{width:0}
+.tabbar{display:flex;border-top:1px solid var(--line);background:var(--surface)}
+.tabbar button{flex:1;padding:10px 0 14px;font-size:12px;color:var(--ink-2);display:flex;flex-direction:column;align-items:center;gap:4px}
+.tabbar button.on{color:var(--primary);font-weight:600}
+.tabbar .ic{width:22px;height:22px}
+@media (max-width:480px){
+  .phone{width:100%;height:calc(100vh - 120px);border:none;border-radius:0;box-shadow:none}
+  .stage{padding:0}
+  .note{display:none}
+}
+
+/* ---------- components ---------- */
+h1{font-size:24px;line-height:1.2;margin:10px 0 14px}
+h2{font-size:18px;margin:6px 0 12px}
+.sub{color:var(--ink-2);font-size:13px}
+.hdr{display:flex;align-items:center;gap:8px;margin:6px 0 12px}
+.hdr h2{margin:0}
+.back{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;margin-left:-6px}
+.back:hover{background:var(--surface-2)}
+.search{display:flex;align-items:center;gap:8px;background:var(--surface-2);border:1px solid var(--line);border-radius:999px;padding:11px 16px}
+.search input{border:none;background:none;outline:none;flex:1;font-size:15px}
+.tile{display:flex;align-items:center;gap:14px;width:100%;text-align:left;background:var(--primary-soft);border:1.5px solid var(--primary);border-radius:var(--radius);padding:14px;margin-top:12px}
+.tile .tic{width:42px;height:42px;border-radius:12px;background:var(--primary);color:#fff;display:grid;place-items:center;flex:none}
+.tile b{display:block;font-size:15px}
+.tile span{font-size:13px;color:var(--ink-2)}
+.section-label{font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-2);margin:22px 0 8px}
+.row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 0;border-bottom:1px solid var(--line)}
+.row:last-child{border-bottom:none}
+.linkrow{width:100%;text-align:left}
+.card{border:1px solid var(--line);border-radius:var(--radius);padding:14px;margin-bottom:10px;background:var(--surface)}
+.card h3{font-size:15px;margin-bottom:3px}
+.pill{display:inline-block;font-size:12px;font-weight:600;padding:3px 10px;border-radius:999px}
+.pill.good{background:var(--good-soft);color:var(--good)}
+.pill.warn{background:var(--warn-soft);color:var(--warn)}
+.pill.bad{background:var(--bad-soft);color:var(--bad)}
+.pill.neutral{background:var(--surface-2);color:var(--ink-2)}
+.btn{background:var(--primary);color:var(--primary-ink);font-weight:600;border-radius:999px;padding:12px 18px;width:100%;margin-top:12px}
+.btn:hover{filter:brightness(1.08)}
+.btn.ghost{background:none;color:var(--ink);border:1.5px solid var(--line)}
+.btn.sm{width:auto;padding:7px 14px;font-size:13px;margin:0}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.seg{display:flex;background:var(--surface-2);border:1px solid var(--line);border-radius:999px;padding:3px;margin-bottom:12px}
+.seg button{flex:1;padding:7px;border-radius:999px;font-size:13px;color:var(--ink-2)}
+.seg button.on{background:var(--surface);color:var(--ink);font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.1)}
+.kv{display:flex;justify-content:space-between;font-size:14px;padding:7px 0}
+.kv span:first-child{color:var(--ink-2)}
+.badge-big{width:96px;height:96px;border-radius:50%;display:grid;place-items:center;margin:18px auto 10px}
+.center{text-align:center}
+.stepper{display:flex;align-items:center;border:1.5px solid var(--line);border-radius:999px}
+.stepper button{width:32px;height:32px;font-size:18px;font-weight:600}
+.stepper b{min-width:34px;text-align:center}
+.stepper.low{border-color:var(--warn)}
+.banner{border-radius:12px;padding:12px 14px;font-size:13px;margin:10px 0}
+.banner.warn{background:var(--warn-soft);border:1px solid #f3d29a}
+.banner.info{background:var(--surface-2);border:1px solid var(--line)}
+.toggle{display:flex;align-items:center;gap:8px;font-size:13px}
+.switch{width:40px;height:22px;border-radius:999px;background:var(--line);position:relative;transition:.2s}
+.switch::after{content:"";position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;transition:.2s}
+.switch.on{background:var(--warn)}
+.switch.on::after{left:21px}
+.map{height:220px;border-radius:var(--radius);background:linear-gradient(135deg,#e3efe9,#d5e6ef);position:relative;overflow:hidden;border:1px solid var(--line)}
+.map .road{position:absolute;background:#fff;opacity:.85}
+.pin{position:absolute;transform:translate(-50%,-100%);display:flex;flex-direction:column;align-items:center;font-size:11px;font-weight:600}
+.pin i{width:22px;height:22px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:var(--primary);border:2px solid #fff;display:block;margin-bottom:4px}
+.pin.me i{background:#2563eb;border-radius:50%;transform:none;width:16px;height:16px}
+.mono{font-family:Consolas,"Courier New",monospace;font-size:11.5px;word-break:break-all;background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:10px;line-height:1.5}
+.rx-paper{background:#fffdf6;border:1px solid #e8e1c8;border-radius:10px;padding:14px 16px;font-family:"Segoe Print","Comic Sans MS",cursive;font-size:15px;line-height:1.9;color:#2b3a67;transform:rotate(-1deg)}
+.scanline{height:3px;background:var(--primary);border-radius:2px;animation:scan 1.1s ease-in-out infinite alternate;margin:8px 0}
+@keyframes scan{from{opacity:.25;transform:scaleX(.2)}to{opacity:1;transform:scaleX(1)}}
+.toast{position:absolute;left:50%;bottom:86px;transform:translateX(-50%);background:#1d2725;color:#fff;padding:10px 16px;border-radius:999px;font-size:13px;white-space:nowrap;opacity:0;transition:.25s;pointer-events:none}
+.toast.show{opacity:1}
+.empty{color:var(--ink-2);font-size:14px;text-align:center;padding:30px 10px}
+
+/* ---------- web dashboard ---------- */
+.web{width:min(1040px,100%);background:var(--surface);border-radius:14px;border:1px solid var(--line);box-shadow:0 20px 50px -25px rgba(0,0,0,.3);overflow:hidden}
+.webbar{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--line);background:var(--surface-2)}
+.webbar i{width:11px;height:11px;border-radius:50%;background:var(--line);display:block}
+.webbar .url{margin-left:12px;font-size:12px;color:var(--ink-2);background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:4px 14px}
+.webbody{display:grid;grid-template-columns:200px 1fr;min-height:560px}
+.side{background:var(--surface-2);padding:20px 12px;border-right:1px solid var(--line)}
+.side button{display:block;width:100%;text-align:left;padding:9px 12px;border-radius:8px;font-size:14px;color:var(--ink-2);margin-bottom:2px}
+.side button.on{background:var(--primary-soft);color:var(--ink);font-weight:600}
+.main{padding:24px 28px}
+.grid2{display:grid;grid-template-columns:1fr 280px;gap:24px;align-items:start}
+.field{margin-bottom:12px}
+.field label{display:block;font-size:13px;color:var(--ink-2);margin-bottom:5px}
+.field input,.field select{width:100%;border:1px solid var(--line);border-radius:8px;padding:9px 12px;background:var(--surface)}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{text-align:left;font-size:12px;color:var(--ink-2);font-weight:600;padding:8px;border-bottom:1px solid var(--line)}
+td{padding:10px 8px;border-bottom:1px solid var(--line)}
+canvas.qr{display:block;margin:10px auto;image-rendering:pixelated}
+@media (max-width:760px){.webbody{grid-template-columns:1fr}.side{display:flex;overflow-x:auto;padding:8px}.side button{white-space:nowrap;width:auto}.grid2{grid-template-columns:1fr}.main{padding:18px 16px}}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="brand"><div class="logo">+</div>PharmaFind <span class="sub" style="font-weight:400">prototype</span></div>
+  <div class="roles" id="roles">
+    <button data-role="patient" class="on">Patient app</button>
+    <button data-role="pharmacy">Pharmacy app</button>
+    <button data-role="distributor">Distributor web</button>
+  </div>
+</div>
+<div class="stage" id="stage"></div>
+
+<script>
+/* =========================================================
+   Sample data
+   ========================================================= */
+const DRUGS = [
+  {id:'amx250', name:'Amoxicillin', strength:'250 mg', form:'capsules'},
+  {id:'amx500', name:'Amoxicillin', strength:'500 mg', form:'capsules'},
+  {id:'pcm500', name:'Paracetamol', strength:'500 mg', form:'tablets'},
+  {id:'pcm1g',  name:'Paracetamol', strength:'1 g', form:'tablets'},
+  {id:'ibu400', name:'Ibuprofen', strength:'400 mg', form:'tablets'},
+  {id:'met850', name:'Metformin', strength:'850 mg', form:'tablets'},
+  {id:'cip500', name:'Ciprofloxacin', strength:'500 mg', form:'tablets'},
+  {id:'art20',  name:'Artemether/Lumefantrine', strength:'20/120 mg', form:'tablets'},
+  {id:'oms20',  name:'Omeprazole', strength:'20 mg', form:'capsules'},
+  {id:'aml5',   name:'Amlodipine', strength:'5 mg', form:'tablets'},
+  {id:'azi500', name:'Azithromycin', strength:'500 mg', form:'tablets'},
+  {id:'cet10',  name:'Cetirizine', strength:'10 mg', form:'tablets'}
+];
+const drug = id => DRUGS.find(d => d.id === id);
+const label = d => `${d.name} ${d.strength}`;
+
+const PHARMACIES = [
+  {id:'p1', name:'Pharmacie du Centre', area:'Great Soppo, Buea', km:0.8, x:38, y:42, phone:'+237 6xx xxx 101', hours:'7:30 to 21:00',
+   stock:{amx250:[42,1500],amx500:[20,2200],pcm500:[120,300],pcm1g:[30,600],met850:[6,2500],cip500:[18,2000],oms20:[25,1800]}},
+  {id:'p2', name:'Pharmacie Molyko', area:'Molyko, Buea', km:1.6, x:62, y:30, phone:'+237 6xx xxx 202', hours:'8:00 to 22:00',
+   stock:{amx250:[15,1450],pcm500:[80,300],ibu400:[40,700],art20:[22,3500],cet10:[60,500],azi500:[12,3000]}},
+  {id:'p3', name:'Pharmacie Bonduma', area:'Bonduma, Buea', km:2.3, x:24, y:70, phone:'+237 6xx xxx 303', hours:'8:00 to 20:00',
+   stock:{amx250:[4,1500],amx500:[9,2100],pcm1g:[45,550],ibu400:[18,750],aml5:[30,1200],art20:[10,3600]}},
+  {id:'p4', name:'Pharmacie Mile 17', area:'Mile 17, Buea', km:3.4, x:76, y:72, phone:'+237 6xx xxx 404', hours:'24 hours',
+   stock:{pcm500:[200,250],pcm1g:[60,500],ibu400:[55,650],met850:[35,2400],oms20:[14,1900],cip500:[8,2100],azi500:[20,2900]}}
+];
+const LOW = 10;
+
+/* =========================================================
+   App state
+   ========================================================= */
+const S = {
+  role:'patient',
+  patient:{stack:[{v:'home'}], tab:'home', recent:['pcm500','amx250','met850'], reservations:[]},
+  pharmacy:{tab:'stock', offline:false, queue:[], q:''},
+  dist:{tab:'batches', last:null},
+  keys:null,             // distributor ECDSA keypair (WebCrypto)
+  pubKeys:{},            // keyId -> CryptoKey (what the app caches for offline verify)
+  batches:[],            // registered batches (with status)
+  myPharmacy:'p1',
+  history:{}             // simulated 30-day sales history for forecasting
+};
+
+/* simulated daily sales for the pharmacy, deterministic */
+(function seedHistory(){
+  const base = {amx250:3,amx500:1.5,pcm500:9,pcm1g:2,met850:1.6,cip500:1,oms20:1.2};
+  for (const k in base){
+    const arr=[]; for(let d=0;d<30;d++){ arr.push(Math.max(0,Math.round(base[k]*(1+0.45*Math.sin(d*1.7+k.length))))); }
+    S.history[k]=arr;
+  }
+})();
+
+/* =========================================================
+   Algorithms (real implementations used by the prototype)
+   ========================================================= */
+// Levenshtein distance (prescription matching)
+function lev(a,b){
+  const m=a.length,n=b.length; const dp=Array.from({length:m+1},(_,i)=>[i,...Array(n).fill(0)]);
+  for(let j=1;j<=n;j++) dp[0][j]=j;
+  for(let i=1;i<=m;i++) for(let j=1;j<=n;j++)
+    dp[i][j]=Math.min(dp[i-1][j]+1, dp[i][j-1]+1, dp[i-1][j-1]+(a[i-1]===b[j-1]?0:1));
+  return dp[m][n];
+}
+const sim=(a,b)=>1-lev(a,b)/Math.max(a.length,b.length);
+
+function matchPrescription(text){
+  const lines=text.split('\n').map(l=>l.trim()).filter(Boolean);
+  const out=[];
+  for(const line of lines){
+    const words=line.toLowerCase().replace(/[^a-z\s\/]/g,' ').split(/\s+/).filter(w=>w.length>3);
+    let best=null;
+    for(const w of words) for(const d of DRUGS){
+      const s=sim(w,d.name.toLowerCase().split('/')[0]);
+      if(s>=0.75 && (!best||s>best.s)) best={d,s,w};
+    }
+    if(best){
+      // pick strength mentioned on the line if one exists
+      const strengthHit=DRUGS.find(d=>d.name===best.d.name && line.toLowerCase().replace(/\s/g,'').includes(d.strength.replace(/\s/g,'').toLowerCase()));
+      const d=strengthHit||best.d;
+      if(!out.some(o=>o.d.id===d.id)) out.push({d,s:best.s,raw:line});
+    }
+  }
+  return out;
+}
+
+// Simple exponential smoothing (stock-out forecast)
+function forecast(series,alpha=0.3){
+  let f=series[0]; for(let t=1;t<series.length;t++) f=alpha*series[t]+(1-alpha)*f; return f;
+}
+
+// ECDSA P-256 signing + verification (WebCrypto)
+const enc=new TextEncoder();
+const b64=buf=>btoa(String.fromCharCode(...new Uint8Array(buf)));
+const unb64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+const canon=p=>JSON.stringify({v:p.v,k:p.k,b:p.b,d:p.d,m:p.m,e:p.e}); // fixed field order
+async function ensureKeys(){
+  if(S.keys) return;
+  if(!(window.crypto&&crypto.subtle)){ S.noCrypto=true; return; }
+  S.keys=await crypto.subtle.generateKey({name:'ECDSA',namedCurve:'P-256'},false,['sign','verify']);
+  S.pubKeys['dist-cp-01']=S.keys.publicKey;
+}
+async function signBatch(p){
+  await ensureKeys();
+  const sig=await crypto.subtle.sign({name:'ECDSA',hash:'SHA-256'},S.keys.privateKey,enc.encode(canon(p)));
+  return {...p,s:b64(sig)};
+}
+async function verifyPayload(text){
+  let p; try{ p=JSON.parse(text); }catch{ return {status:'bad',why:'The code could not be read as a PharmaFind label.'}; }
+  const key=S.pubKeys[p.k];
+  if(!key) return {status:'unknown',p,why:'This distributor is not registered with PharmaFind.'};
+  let ok=false; try{ ok=await crypto.subtle.verify({name:'ECDSA',hash:'SHA-256'},key,unb64(p.s),enc.encode(canon(p))); }catch{ ok=false; }
+  if(!ok) return {status:'bad',p,why:'The signature does not match. The label was changed or forged.'};
+  const batch=S.batches.find(b=>b.b===p.b);
+  if(batch&&batch.status==='recalled') return {status:'warn',p,why:'This batch has been recalled by the distributor. Do not use it.'};
+  if(new Date(p.e+'-28')<new Date()) return {status:'warn',p,why:'This batch has expired.'};
+  return {status:'good',p,why:'Signature verified offline with the distributor’s public key.'};
+}
+
+/* =========================================================
+   Minimal QR-like code drawing (visual only)
+   ========================================================= */
+function drawCode(canvas,text){
+  const n=25,c=7; canvas.width=canvas.height=n*c; const g=canvas.getContext('2d');
+  g.fillStyle='#fff';g.fillRect(0,0,n*c,n*c);g.fillStyle='#111';
+  let h=2166136261; const bits=[];
+  for(let i=0;i<n*n;i++){ h^=text.charCodeAt(i%text.length)+i; h=Math.imul(h,16777619)>>>0; bits.push(h&1); }
+  const finder=(x,y)=>x<8&&y<8||x>n-9&&y<8||x<8&&y>n-9;
+  for(let y=0;y<n;y++)for(let x=0;x<n;x++){ if(!finder(x,y)&&bits[y*n+x]) g.fillRect(x*c,y*c,c,c); }
+  for(const [fx,fy] of [[0,0],[n-7,0],[0,n-7]]){
+    g.fillRect(fx*c,fy*c,7*c,7*c);g.fillStyle='#fff';g.fillRect((fx+1)*c,(fy+1)*c,5*c,5*c);g.fillStyle='#111';g.fillRect((fx+2)*c,(fy+2)*c,3*c,3*c);
+  }
+}
+
+/* =========================================================
+   Helpers
+   ========================================================= */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fcfa=n=>n.toLocaleString('en-US')+' FCFA';
+const ICON={
+  home:'<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>',
+  map:'<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-6.1-7-11a7 7 0 0 1 14 0c0 4.9-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>',
+  orders:'<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h4"/></svg>',
+  stock:'<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7l9-4 9 4-9 4z"/><path d="M3 7v10l9 4 9-4V7"/></svg>',
+  bell:'<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 20a2 2 0 0 0 4 0"/></svg>',
+  qr:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3zM20 14v.01M14 20h.01M17 20h4v-3"/></svg>',
+  rx:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h5a2 2 0 0 1 0 4H8V8zm0 4v5m4-5 4 5"/></svg>',
+  search:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5b6b68" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>',
+  back:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M15 5l-7 7 7 7"/></svg>',
+  check:'<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
+  x:'<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+  alert:'<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 8v5M12 16.5v.01"/><path d="M10.3 3.9L2.5 18a2 2 0 0 0 1.7 3h15.6a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>',
+  q:'<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6V14M12 17.5v.01"/></svg>'
+};
+function toast(msg){ const t=$('#toast'); if(!t) return; t.textContent=msg; t.classList.add('show'); clearTimeout(toast._t); toast._t=setTimeout(()=>t.classList.remove('show'),2200); }
+function phone(inner,tabs){
+  return `<div class="phone"><div class="status"><span>9:41</span><span>4G ▮▮▮</span></div>
+  <div class="screen" id="screen">${inner}</div>${tabs||''}<div class="toast" id="toast"></div></div>`;
+}
+function hdr(title,backAction='pop'){ return `<div class="hdr"><button class="back" data-a="${backAction}" aria-label="Back">${ICON.back}</button><h2>${esc(title)}</h2></div>`; }
+
+/* =========================================================
+   PATIENT APP
+   ========================================================= */
+const P=S.patient;
+const cur=()=>P.stack[P.stack.length-1];
+function push(v){ P.stack.push(v); render(); $('#screen')&&($('#screen').scrollTop=0); }
+function pop(){ if(P.stack.length>1) P.stack.pop(); render(); }
+
+function resultsFor(ids){
+  return PHARMACIES.map(ph=>{
+    const have=ids.filter(id=>ph.stock[id]&&ph.stock[id][0]>0);
+    return {ph,have};
+  }).filter(r=>r.have.length).sort((a,b)=>b.have.length-a.have.length||a.ph.km-b.ph.km);
+}
+
+const patientViews={
+  home(){
+    return `<h1>Find your<br>medicine</h1>
+    <div class="search">${ICON.search}<input id="q" placeholder="Search a drug name" autocomplete="off"></div>
+    <div id="sugg"></div>
+    <button class="tile" data-a="go" data-v="verify">${'<div class="tic">'+ICON.qr+'</div>'}<div><b>Verify a drug pack</b><span>Scan the QR code on the box</span></div></button>
+    <button class="tile" data-a="go" data-v="rx">${'<div class="tic">'+ICON.rx+'</div>'}<div><b>Scan a prescription</b><span>Find every drug on it at once</span></div></button>
+    <div class="section-label">Recent searches</div>
+    ${P.recent.map(id=>`<button class="row linkrow" data-a="search" data-id="${id}"><span>${esc(label(drug(id)))}</span><span class="sub">›</span></button>`).join('')}`;
+  },
+  results(v){
+    const d=drug(v.id); const rs=resultsFor([v.id]); const mode=v.mode||'list';
+    const list=rs.length?rs.map(({ph})=>{
+      const [q,price]=ph.stock[v.id];
+      const pill=q<=LOW?'<span class="pill warn">Low stock</span>':'<span class="pill good">In stock</span>';
+      return `<div class="card"><h3>${esc(ph.name)}</h3><div class="sub">${ph.km} km · ${fcfa(price)}</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px">${pill}
+      <span style="display:flex;gap:6px"><button class="btn sm ghost" data-a="go" data-v="pharm" data-id="${ph.id}">Details</button>
+      <button class="btn sm" data-a="reserve" data-ph="${ph.id}" data-id="${v.id}">Reserve</button></span></div></div>`;
+    }).join(''):`<div class="empty">No pharmacy within 5 km has ${esc(label(d))} right now.</div>`;
+    const map=`<div class="map">${mapRoads()}<div class="pin me" style="left:50%;top:52%"><i></i>You</div>
+      ${rs.map(({ph})=>`<div class="pin" style="left:${ph.x}%;top:${ph.y}%"><i></i>${esc(ph.name.replace('Pharmacie ',''))}</div>`).join('')}</div>
+      <div style="margin-top:12px">${list}</div>`;
+    return `${hdr(label(d))}
+    <div class="seg"><button class="${mode==='list'?'on':''}" data-a="mode" data-m="list">List</button><button class="${mode==='map'?'on':''}" data-a="mode" data-m="map">Map</button></div>
+    <div class="sub" style="margin-bottom:10px">${rs.length} pharmac${rs.length===1?'y':'ies'} within 5 km</div>
+    ${mode==='map'?map:list}`;
+  },
+  pharm(v){
+    const ph=PHARMACIES.find(p=>p.id===v.id);
+    return `${hdr(ph.name)}
+    <div class="map" style="height:150px">${mapRoads()}<div class="pin" style="left:50%;top:60%"><i></i>${esc(ph.name.replace('Pharmacie ',''))}</div></div>
+    <div class="card" style="margin-top:12px">
+      <div class="kv"><span>Address</span><span>${esc(ph.area)}</span></div>
+      <div class="kv"><span>Distance</span><span>${ph.km} km</span></div>
+      <div class="kv"><span>Opening hours</span><span>${esc(ph.hours)}</span></div>
+      <div class="kv"><span>Phone</span><span>${esc(ph.phone)}</span></div>
+    </div>
+    <div style="display:flex;gap:8px"><button class="btn ghost" data-a="toast" data-msg="Calling ${esc(ph.name)}…">Call</button><button class="btn" data-a="toast" data-msg="Opening directions in Maps…">Directions</button></div>
+    <div class="section-label">Drugs available</div>
+    ${Object.entries(ph.stock).filter(([,s])=>s[0]>0).map(([id,[q,p]])=>`<div class="row"><span>${esc(label(drug(id)))}<br><span class="sub">${fcfa(p)}</span></span>${q<=LOW?'<span class="pill warn">Low</span>':'<span class="pill good">In stock</span>'}</div>`).join('')}`;
+  },
+  reserved(v){
+    const ph=PHARMACIES.find(p=>p.id===v.ph); const d=drug(v.id);
+    return `${hdr('Reservation')}
+    <div class="badge-big" style="background:var(--good-soft);color:var(--good)">${ICON.check}</div>
+    <h2 class="center">Reserved</h2>
+    <p class="center sub">Show this code at the counter.</p>
+    <div class="center" style="font-size:32px;font-weight:800;letter-spacing:.15em;margin:16px 0">${v.code}</div>
+    <div class="card">
+      <div class="kv"><span>Drug</span><span>${esc(label(d))}</span></div>
+      <div class="kv"><span>Pharmacy</span><span>${esc(ph.name)}</span></div>
+      <div class="kv"><span>Pickup by</span><span>${v.until}</span></div>
+      <div class="kv"><span>Price</span><span>${fcfa(ph.stock[v.id][1])}</span></div>
+    </div>
+    <button class="btn ghost" data-a="tab" data-t="home">Back to home</button>`;
+  },
+  verify(v){
+    const ready=S.batches.length>0;
+    const samples=ready?`
+      <div class="section-label">Simulate a scan</div>
+      <p class="sub" style="margin-bottom:8px">A real phone reads the QR with the camera. Here, pick a pack to scan:</p>
+      <button class="btn" data-a="scan" data-k="genuine">Scan a genuine pack</button>
+      <button class="btn ghost" data-a="scan" data-k="tampered">Scan a tampered pack (expiry changed)</button>
+      <button class="btn ghost" data-a="scan" data-k="forged">Scan a pack from an unknown supplier</button>
+      <div class="section-label">Or paste label data</div>
+      <textarea id="paste" class="mono" style="width:100%;height:80px;resize:vertical" placeholder='{"v":1,"k":"dist-cp-01",...}'></textarea>
+      <button class="btn ghost" data-a="scanpaste">Verify pasted data</button>`
+      :`<div class="banner info">No batches are registered yet. Switch to <b>Distributor web</b> at the top, sign a batch, then come back to scan it.</div>
+      <button class="btn" data-a="role" data-r="distributor">Open distributor dashboard</button>`;
+    return `${hdr('Verify a drug pack')}
+    <div style="border:2px dashed var(--line);border-radius:var(--radius);height:170px;display:grid;place-items:center;color:var(--ink-2)">
+      <div class="center">${ICON.qr}<div style="margin-top:6px;font-size:13px">Point the camera at the QR code</div></div></div>
+    ${samples}`;
+  },
+  scanning(){ return `${hdr('Verify a drug pack')}<div class="center" style="padding-top:120px"><div class="sub">Checking signature…</div><div class="scanline"></div></div>`; },
+  verdict(v){
+    const r=v.r; const look={good:['Genuine','good',ICON.check],bad:['Do not use','bad',ICON.x],warn:['Warning','warn',ICON.alert],unknown:['Unknown supplier','neutral',ICON.q]}[r.status];
+    const col={good:'var(--good)',bad:'var(--bad)',warn:'var(--warn)',neutral:'var(--ink-2)'}[look[1]];
+    const soft={good:'var(--good-soft)',bad:'var(--bad-soft)',warn:'var(--warn-soft)',neutral:'var(--surface-2)'}[look[1]];
+    const p=r.p;
+    return `${hdr('Verification','go-verify')}
+    <div class="badge-big" style="background:${soft};color:${col};border:3px solid ${col}">${look[2]}</div>
+    <h1 class="center" style="margin:6px 0 4px">${look[0]}</h1>
+    <p class="center sub" style="margin-bottom:16px">${esc(r.why)}</p>
+    ${p?`<div class="card">
+      <div class="kv"><span>Drug</span><span>${esc(drug(p.d)?label(drug(p.d)):p.d)}</span></div>
+      <div class="kv"><span>Batch</span><span>${esc(p.b)}</span></div>
+      <div class="kv"><span>Manufactured</span><span>${esc(p.m)}</span></div>
+      <div class="kv"><span>Expiry</span><span>${esc(p.e)}</span></div>
+      <div class="kv"><span>Key ID</span><span>${esc(p.k)}</span></div></div>`:''}
+    ${r.status!=='good'?`<button class="btn" data-a="report">Report this pack</button>`:''}
+    <button class="btn ghost" data-a="go-verify">Scan another pack</button>`;
+  },
+  rx(v){
+    const sample=`Rx
+Amoxcilin 500mg  1 cap tds x 7/7
+Paracetmol 1g  1 tab tds prn
+Ibuprophen 400mg 1 tab bd
+
+Dr. N. Ewane`;
+    return `${hdr('Scan a prescription')}
+    <p class="sub" style="margin-bottom:10px">On a phone, this is a camera photo read by ML Kit. Here is a sample handwritten prescription, with the spelling mistakes OCR usually produces. You can edit it.</p>
+    <div class="rx-paper"><textarea id="rxtext" style="width:100%;height:170px;border:none;background:none;resize:none;outline:none;font:inherit;color:inherit;line-height:1.9">${esc(v.text||sample)}</textarea></div>
+    <p class="sub" style="margin-top:10px">Read on your phone. The photo is never uploaded.</p>
+    <button class="btn" data-a="readrx">Read prescription</button>`;
+  },
+  rxresult(v){
+    const ms=v.matches;
+    const rows=ms.length?ms.map(m=>`<div class="row"><span><b>${esc(label(m.d))}</b><br><span class="sub">read as “${esc(m.raw.split(/\s{2,}/)[0])}”</span></span><span class="pill ${m.s>=.9?'good':'warn'}">${Math.round(m.s*100)}%</span></div>`).join('')
+      :'<div class="empty">No drug names recognised. Try editing the text.</div>';
+    const ids=ms.map(m=>m.d.id); const rs=resultsFor(ids);
+    return `${hdr('Prescription')}
+    <div class="section-label">${ms.length} drug${ms.length===1?'':'s'} found</div>${rows}
+    ${ms.length?`<div class="section-label">Best pharmacies for this prescription</div>
+    ${rs.map(({ph,have})=>`<div class="card"><div style="display:flex;justify-content:space-between"><h3>${esc(ph.name)}</h3><span class="pill ${have.length===ids.length?'good':'warn'}">${have.length} of ${ids.length}</span></div>
+      <div class="sub">${ph.km} km · has ${have.map(id=>drug(id).name).join(', ')}</div>
+      <div class="sub" style="margin-top:4px">Total ${fcfa(have.reduce((t,id)=>t+ph.stock[id][1],0))}</div></div>`).join('')}`:''}
+    <p class="sub" style="margin-top:8px">Matching uses Levenshtein similarity; names scoring 75% or more are accepted.</p>`;
+  },
+  orders(){
+    return `<h1>My reservations</h1>${P.reservations.length?P.reservations.map(r=>{
+      const ph=PHARMACIES.find(p=>p.id===r.ph);
+      return `<div class="card"><div style="display:flex;justify-content:space-between"><h3>${esc(label(drug(r.id)))}</h3><span class="pill good">Reserved</span></div>
+      <div class="sub">${esc(ph.name)} · code <b>${r.code}</b> · pickup by ${r.until}</div></div>`;}).join('')
+      :'<div class="empty">No reservations yet. Search a drug and tap Reserve.</div>'}`;
+  },
+  mapall(){
+    return `<h1>Pharmacies near you</h1><div class="map" style="height:300px">${mapRoads()}<div class="pin me" style="left:50%;top:52%"><i></i>You</div>
+    ${PHARMACIES.map(ph=>`<div class="pin" style="left:${ph.x}%;top:${ph.y}%"><i></i>${esc(ph.name.replace('Pharmacie ',''))}</div>`).join('')}</div>
+    <div style="margin-top:12px">${PHARMACIES.map(ph=>`<button class="row linkrow" data-a="go" data-v="pharm" data-id="${ph.id}"><span><b>${esc(ph.name)}</b><br><span class="sub">${esc(ph.area)} · ${ph.hours}</span></span><span class="sub">${ph.km} km</span></button>`).join('')}</div>`;
+  }
+};
+function mapRoads(){
+  return `<div class="road" style="left:0;right:0;top:48%;height:8px"></div><div class="road" style="top:0;bottom:0;left:44%;width:7px"></div>
+  <div class="road" style="left:10%;right:30%;top:22%;height:5px;transform:rotate(-12deg)"></div><div class="road" style="top:30%;bottom:0;left:72%;width:5px;transform:rotate(14deg)"></div>`;
+}
+function renderPatient(){
+  const v=cur(); const tabs=`<div class="tabbar">
+    <button class="${P.tab==='home'?'on':''}" data-a="tab" data-t="home">${ICON.home}Home</button>
+    <button class="${P.tab==='map'?'on':''}" data-a="tab" data-t="map">${ICON.map}Map</button>
+    <button class="${P.tab==='orders'?'on':''}" data-a="tab" data-t="orders">${ICON.orders}Orders${P.reservations.length?` (${P.reservations.length})`:''}</button></div>`;
+  return phone(patientViews[v.v](v),tabs);
+}
+
+/* =========================================================
+   PHARMACY APP
+   ========================================================= */
+const F=S.pharmacy;
+function myPh(){ return PHARMACIES.find(p=>p.id===S.myPharmacy); }
+function stockForecasts(){
+  const ph=myPh();
+  return Object.entries(ph.stock).map(([id,[q]])=>{
+    const h=S.history[id]; if(!h) return null;
+    const daily=forecast(h); const days=daily>0?q/daily:Infinity;
+    return {id,q,daily,days};
+  }).filter(Boolean).sort((a,b)=>a.days-b.days);
+}
+function renderPharmacy(){
+  const ph=myPh(); let inner='';
+  if(F.tab==='stock'){
+    const items=Object.entries(ph.stock).filter(([id])=>label(drug(id)).toLowerCase().includes(F.q.toLowerCase()));
+    inner=`<div style="display:flex;justify-content:space-between;align-items:center"><h1 style="margin-bottom:4px">My stock</h1>
+      ${F.offline?'<span class="pill warn">Offline</span>':'<span class="pill good">Online</span>'}</div>
+      <div class="sub" style="margin-bottom:12px">${esc(ph.name)}</div>
+      <label class="toggle" style="margin-bottom:12px"><span class="switch ${F.offline?'on':''}" data-a="offline"></span><span>Simulate no internet</span></label>
+      <div class="search" style="margin-bottom:6px">${ICON.search}<input id="sq" placeholder="Search stock" value="${esc(F.q)}"></div>
+      ${items.map(([id,[q,p]])=>`<div class="row"><span><b>${esc(drug(id).name)}</b><br><span class="sub">${drug(id).strength} · ${q<=LOW?'<span style="color:var(--warn);font-weight:600">low stock</span>':fcfa(p)}</span></span>
+        <span class="stepper ${q<=LOW?'low':''}"><button data-a="qty" data-id="${id}" data-d="-1" aria-label="Decrease">−</button><b>${q}</b><button data-a="qty" data-id="${id}" data-d="1" aria-label="Increase">+</button></span></div>`).join('')}
+      ${F.queue.length?`<div class="banner ${F.offline?'warn':'info'}">${F.queue.length} change${F.queue.length>1?'s':''} waiting. ${F.offline?'They sync when you are back online.':'Syncing…'}</div>`:''}
+      <button class="btn ghost" data-a="adddrug">Add a drug</button>`;
+  } else if(F.tab==='orders'){
+    const res=S.patient.reservations.filter(r=>r.ph===S.myPharmacy);
+    inner=`<h1>Reservations</h1>${res.length?res.map((r,i)=>`<div class="card"><div style="display:flex;justify-content:space-between;align-items:center"><span><h3>${esc(label(drug(r.id)))}</h3><span class="sub">Code ${r.code} · pickup by ${r.until}</span></span>
+      ${r.ready?'<span class="pill good">Ready</span>':`<button class="btn sm" data-a="ready" data-i="${S.patient.reservations.indexOf(r)}">Mark ready</button>`}</div></div>`).join('')
+      :'<div class="empty">No reservations yet.<br><br>Tip: in the Patient app, search Amoxicillin 250 mg and reserve it at Pharmacie du Centre.</div>'}`;
+  } else {
+    const fs=stockForecasts();
+    inner=`<h1>Alerts</h1>${fs.filter(f=>f.days<7).map(f=>`<div class="banner warn"><b>${esc(label(drug(f.id)))}</b><br>Runs out in about ${Math.max(1,Math.round(f.days))} day${Math.round(f.days)===1?'':'s'}<br><span class="sub">Forecast from the last 30 days of sales</span></div>`).join('')||'<div class="empty">No stock-out alerts.</div>'}
+      <div class="section-label">Forecast for all items</div>
+      <table><tr><th>Drug</th><th>Stock</th><th>Sells/day</th><th>Days left</th></tr>
+      ${fs.map(f=>`<tr><td>${esc(drug(f.id).name)}</td><td>${f.q}</td><td>${f.daily.toFixed(1)}</td><td style="color:${f.days<7?'var(--warn)':'inherit'};font-weight:${f.days<7?600:400}">${isFinite(f.days)?Math.round(f.days):'—'}</td></tr>`).join('')}</table>
+      <p class="sub" style="margin-top:10px">Exponential smoothing, α = 0.3. Days left = stock ÷ forecast daily sales.</p>`;
+  }
+  const tabs=`<div class="tabbar"><button class="${F.tab==='stock'?'on':''}" data-a="ftab" data-t="stock">${ICON.stock}Stock</button>
+    <button class="${F.tab==='orders'?'on':''}" data-a="ftab" data-t="orders">${ICON.orders}Orders</button>
+    <button class="${F.tab==='alerts'?'on':''}" data-a="ftab" data-t="alerts">${ICON.bell}Alerts</button></div>`;
+  return phone(inner,tabs);
+}
+
+/* =========================================================
+   DISTRIBUTOR WEB
+   ========================================================= */
+function renderDist(){
+  const D=S.dist; let main='';
+  if(D.tab==='batches'){
+    main=`<h2 style="font-size:22px">Register a new batch</h2><p class="sub" style="margin-bottom:18px">Signing runs on the server with your private key. Only the public key is shared with the app.</p>
+    <div class="grid2"><div>
+      <div class="field"><label>Drug</label><select id="bd">${DRUGS.map(d=>`<option value="${d.id}">${esc(label(d))} ${d.form}</option>`).join('')}</select></div>
+      <div class="field"><label>Batch number</label><input id="bb" value="AMX-${2409+S.batches.length}-${117+S.batches.length*13}"></div>
+      <div style="display:flex;gap:12px"><div class="field" style="flex:1"><label>Manufacture date</label><input id="bm" type="month" value="2024-09"></div>
+      <div class="field" style="flex:1"><label>Expiry date</label><input id="be" type="month" value="2027-09"></div></div>
+      <button class="btn" style="width:auto;padding:12px 26px" data-a="sign">Sign and generate QR</button>
+      ${S.noCrypto?'<div class="banner warn">This browser blocks WebCrypto here. Open the file in Chrome or Edge.</div>':''}
+    </div>
+    <div class="card" style="text-align:center"><b>QR preview</b>
+      ${D.last?`<canvas class="qr" id="qrc"></canvas><div class="sub">Signed with ECDSA P-256</div><div class="sub">Key ID: dist-cp-01</div>
+        <div class="mono" style="text-align:left;margin-top:10px;max-height:110px;overflow:auto">${esc(JSON.stringify(D.last))}</div>
+        <button class="btn sm ghost" style="margin-top:8px" data-a="copy">Copy label data</button>`
+        :'<div class="empty">Fill in the batch and click Sign to generate its code.</div>'}
+    </div></div>
+    <h2 style="margin-top:30px">Registered batches</h2>
+    ${S.batches.length?`<table><tr><th>Batch</th><th>Drug</th><th>Expiry</th><th>Status</th><th></th></tr>
+      ${S.batches.map((b,i)=>`<tr><td>${esc(b.b)}</td><td>${esc(label(drug(b.d)))}</td><td>${b.e}</td><td><span class="pill ${b.status==='active'?'good':'bad'}">${b.status==='active'?'Active':'Recalled'}</span></td>
+        <td>${b.status==='active'?`<button class="btn sm ghost" data-a="recall" data-i="${i}">Recall</button>`:''}</td></tr>`).join('')}</table>`
+      :'<p class="sub">No batches yet.</p>'}`;
+  } else if(D.tab==='scans'){
+    main=`<h2 style="font-size:22px">Scan reports</h2><p class="sub" style="margin-bottom:16px">Reports of suspected fake packs from patients.</p>
+    ${S.reports&&S.reports.length?`<table><tr><th>When</th><th>Batch</th><th>Result</th><th>Area</th></tr>${S.reports.map(r=>`<tr><td>${r.t}</td><td>${esc(r.b)}</td><td><span class="pill ${r.s==='bad'?'bad':'warn'}">${r.s==='bad'?'Tampered':r.s==='unknown'?'Unknown':'Warning'}</span></td><td>Buea</td></tr>`).join('')}</table>`
+      :'<p class="sub">No reports yet. In the Patient app, scan a tampered pack and tap “Report this pack”.</p>'}`;
+  } else {
+    main=`<h2 style="font-size:22px">Signing key</h2><div class="card" style="max-width:520px;margin-top:14px">
+      <div class="kv"><span>Key ID</span><span>dist-cp-01</span></div><div class="kv"><span>Algorithm</span><span>ECDSA, curve P-256, SHA-256</span></div>
+      <div class="kv"><span>Private key</span><span>Server only (Secret Manager)</span></div><div class="kv"><span>Public key</span><span>Cached in every PharmaFind app</span></div></div>`;
+  }
+  return `<div class="web"><div class="webbar"><i></i><i></i><i></i><span class="url">pharmafind.web.app/distributor/${D.tab}</span></div>
+  <div class="webbody"><div class="side"><div style="font-weight:700;padding:0 12px 16px">CamPharm Ltd</div>
+    <button class="${D.tab==='batches'?'on':''}" data-a="dtab" data-t="batches">Batches</button>
+    <button class="${D.tab==='scans'?'on':''}" data-a="dtab" data-t="scans">Scan reports</button>
+    <button class="${D.tab==='settings'?'on':''}" data-a="dtab" data-t="settings">Signing key</button></div>
+  <div class="main">${main}</div></div></div>`;
+}
+
+/* =========================================================
+   Render + notes
+   ========================================================= */
+const NOTES={
+  patient:`<h3>Try this</h3><ol><li>Search “amoxicilin” (misspelt works).</li><li>Reserve it at a pharmacy.</li><li>Tap <b>Scan a prescription</b>, then Read.</li><li>Sign a batch in <b>Distributor web</b>, then verify a genuine and a tampered pack here.</li></ol>`,
+  pharmacy:`<h3>Try this</h3><ol><li>Turn on “Simulate no internet” and change some quantities. Changes queue.</li><li>Turn it off: they sync.</li><li>Open <b>Alerts</b> for the stock-out forecast.</li><li>Reservations made in the Patient app appear under <b>Orders</b>.</li></ol>`,
+  distributor:`<h3>Try this</h3><ol><li>Click <b>Sign and generate QR</b>. The browser really signs it with ECDSA P-256.</li><li>Go to the Patient app → Verify a drug pack.</li><li>Recall a batch, then scan again to see the warning.</li></ol>`
+};
+function render(){
+  document.querySelectorAll('#roles button').forEach(b=>b.classList.toggle('on',b.dataset.role===S.role));
+  const body=S.role==='patient'?renderPatient():S.role==='pharmacy'?renderPharmacy():renderDist();
+  $('#stage').innerHTML=body+(S.role==='distributor'?'':`<div class="note">${NOTES[S.role]}</div>`);
+  if(S.role==='distributor'){ $('#stage').insertAdjacentHTML('afterbegin',`<div class="note" style="max-width:1040px;width:100%;padding-top:0">${NOTES.distributor.replace('<ol>','<ol style="display:flex;gap:28px;flex-wrap:wrap;list-style-position:inside">').replace(/<li>/g,'<li style="margin:0">')}</div>`); }
+  bindInputs();
+  if(S.role==='distributor'&&S.dist.last){ const c=$('#qrc'); c&&drawCode(c,JSON.stringify(S.dist.last)); }
+}
+function bindInputs(){
+  const q=$('#q');
+  if(q){ q.addEventListener('input',()=>{
+    const t=q.value.trim().toLowerCase(); const box=$('#sugg');
+    if(!t){box.innerHTML='';return;}
+    const scored=DRUGS.map(d=>{const n=d.name.toLowerCase(); const s=n.startsWith(t)?1:Math.max(sim(t,n.slice(0,t.length)),sim(t,n)); return {d,s};})
+      .filter(x=>x.s>=0.7).sort((a,b)=>b.s-a.s).slice(0,5);
+    box.innerHTML=`<div class="card" style="margin-top:8px;padding:4px 14px">${scored.length?scored.map(({d})=>`<button class="row linkrow" data-a="search" data-id="${d.id}"><span>${esc(label(d))}</span><span class="sub">${d.form}</span></button>`).join(''):'<div class="empty" style="padding:12px">No match</div>'}</div>`;
+  }); }
+  const sq=$('#sq');
+  if(sq){ sq.addEventListener('input',()=>{ F.q=sq.value; const pos=sq.selectionStart; render(); const n=$('#sq'); n.focus(); n.setSelectionRange(pos,pos); }); }
+}
+
+/* =========================================================
+   Actions
+   ========================================================= */
+document.addEventListener('click',async e=>{
+  const r=e.target.closest('#roles button'); if(r){ S.role=r.dataset.role; render(); return; }
+  const el=e.target.closest('[data-a]'); if(!el) return;
+  const a=el.dataset.a, d=el.dataset;
+  switch(a){
+    case 'role': S.role=d.r; render(); break;
+    case 'pop': pop(); break;
+    case 'go': push({v:d.v,id:d.id}); break;
+    case 'go-verify': P.stack=[{v:'home'},{v:'verify'}]; render(); break;
+    case 'tab': P.tab=d.t; P.stack=[{v:d.t==='home'?'home':d.t==='map'?'mapall':'orders'}]; render(); break;
+    case 'search': if(!P.recent.includes(d.id)) P.recent=[d.id,...P.recent].slice(0,4); push({v:'results',id:d.id}); break;
+    case 'mode': cur().mode=d.m; render(); break;
+    case 'toast': toast(d.msg); break;
+    case 'reserve':{
+      const ph=PHARMACIES.find(p=>p.id===d.ph); if(ph.stock[d.id][0]<=0) return toast('Out of stock');
+      const now=new Date(); now.setHours(now.getHours()+3);
+      const rv={ph:d.ph,id:d.id,code:'PF-'+Math.floor(1000+Math.random()*9000),until:now.toTimeString().slice(0,5),ready:false};
+      P.reservations.push(rv); push({v:'reserved',...rv}); break; }
+    case 'scan':{
+      push({v:'scanning'});
+      const b=S.batches.find(x=>x.status==='active')||S.batches[0];
+      let p={v:b.v,k:b.k,b:b.b,d:b.d,m:b.m,e:b.e,s:b.s};
+      if(d.k==='tampered') p={...p,e:'2029-12'};             // changed after signing
+      if(d.k==='forged') p={...p,k:'dist-unknown-77'};
+      const res=await verifyPayload(JSON.stringify(p));
+      setTimeout(()=>{ P.stack.pop(); push({v:'verdict',r:res}); },650); break; }
+    case 'scanpaste':{
+      const t=$('#paste').value.trim(); if(!t) return toast('Paste the label data first');
+      push({v:'scanning'}); const res=await verifyPayload(t); setTimeout(()=>{P.stack.pop(); push({v:'verdict',r:res});},650); break; }
+    case 'report':{
+      const v=cur(); S.reports=S.reports||[]; S.reports.unshift({t:new Date().toTimeString().slice(0,5),b:v.r.p?v.r.p.b:'unreadable',s:v.r.status});
+      toast('Report sent to the regulator. Thank you.'); break; }
+    case 'readrx':{
+      const text=$('#rxtext').value; push({v:'scanning'});
+      setTimeout(()=>{ P.stack.pop(); P.stack[P.stack.length-1].text=text; push({v:'rxresult',matches:matchPrescription(text)}); },700); break; }
+    /* pharmacy */
+    case 'ftab': F.tab=d.t; render(); break;
+    case 'offline':{
+      F.offline=!F.offline; render();
+      if(!F.offline&&F.queue.length){ const n=F.queue.length; setTimeout(()=>{ F.queue=[]; render(); toast(`${n} change${n>1?'s':''} synced`); },900); }
+      break; }
+    case 'qty':{
+      const st=myPh().stock[d.id]; const nq=Math.max(0,st[0]+Number(d.d)); if(nq===st[0]) return;
+      st[0]=nq; F.queue.push({id:d.id,delta:Number(d.d)});
+      render();
+      if(!F.offline){ setTimeout(()=>{ F.queue=[]; render(); },700); }
+      break; }
+    case 'adddrug':{
+      const missing=DRUGS.find(x=>!myPh().stock[x.id]); if(!missing) return toast('All catalogue drugs are listed');
+      myPh().stock[missing.id]=[10,1000]; render(); toast(`${label(missing)} added`); break; }
+    case 'ready':{ const rv=S.patient.reservations[Number(d.i)]; rv.ready=true; render(); toast('Patient notified: ready for pickup'); break; }
+    /* distributor */
+    case 'dtab': S.dist.tab=d.t; render(); break;
+    case 'sign':{
+      await ensureKeys(); if(S.noCrypto){ render(); return; }
+      const p={v:1,k:'dist-cp-01',b:$('#bb').value.trim()||'BATCH-1',d:$('#bd').value,m:$('#bm').value,e:$('#be').value};
+      const signed=await signBatch(p); S.batches.unshift({...signed,status:'active'}); S.dist.last=signed; render(); break; }
+    case 'copy':{ try{ await navigator.clipboard.writeText(JSON.stringify(S.dist.last)); alertless('Copied'); }catch{ alertless('Select the text and copy it'); } break; }
+    case 'recall':{ S.batches[Number(d.i)].status='recalled'; render(); break; }
+  }
+});
+function alertless(msg){ const b=document.querySelector('[data-a="copy"]'); if(b){ const o=b.textContent; b.textContent=msg; setTimeout(()=>b.textContent=o,1500);} }
+
+ensureKeys().then(render);
+render();
+</script>
+</body>
+</html>
